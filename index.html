@@ -25,6 +25,39 @@
       -webkit-user-select: none;
     }
 
+    /* Clean blank loading screen */
+    .loader {
+      position: fixed;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #161311;
+      background-image: radial-gradient(circle at center, #241d1b 0%, #161311 75%, #0e0c0b 100%);
+      z-index: 9999;
+      transition: opacity 0.4s ease, visibility 0.4s ease;
+    }
+
+    .loader.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .loader-text {
+      color: #998c82;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-size: 13px;
+      letter-spacing: 1px;
+      font-weight: 400;
+      animation: pulse 1.4s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 0.35; }
+      50% { opacity: 0.95; }
+    }
+
     .flipbook-stage {
       position: relative;
       display: flex;
@@ -36,6 +69,7 @@
       padding: 12px;
     }
 
+    /* Keep hidden until StPageFlip is fully mounted to prevent vertical page flash */
     .flipbook-wrapper {
       position: relative;
       display: flex;
@@ -43,12 +77,22 @@
       justify-content: center;
       box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 8px 20px rgba(0, 0, 0, 0.5);
       border-radius: 3px;
-      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      opacity: 0;
+      transition: opacity 0.4s ease, transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .flipbook-wrapper.ready {
+      opacity: 1;
     }
 
     .flipbook {
       position: relative;
       display: block;
+    }
+
+    /* Crucial: hide raw pages before flipbook library initializes */
+    .flipbook:not(.stf__parent) .page {
+      display: none !important;
     }
 
     .page {
@@ -156,6 +200,11 @@
   </script>
 </head>
 <body>
+  <!-- Blank screen with subtle small loading text while book prepares -->
+  <div id="loader" class="loader">
+    <span class="loader-text">loading...</span>
+  </div>
+
   <div class="flipbook-stage">
     <div class="flipbook-wrapper">
       <div id="flipbook" class="flipbook">
@@ -199,6 +248,7 @@
       const wrapperEl = document.querySelector('.flipbook-wrapper');
       const btnPrev = document.getElementById('btn-prev');
       const btnNext = document.getElementById('btn-next');
+      const loaderEl = document.getElementById('loader');
 
       const basePageWidth = 1048;
       const basePageHeight = 1488;
@@ -304,6 +354,14 @@
         });
 
         pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+
+        // Once loaded and measured, reveal the book and hide the blank loader
+        requestAnimationFrame(() => {
+          setTimeout(() => {
+            wrapperEl.classList.add('ready');
+            if (loaderEl) loaderEl.classList.add('hidden');
+          }, 120);
+        });
 
         pageFlip.on('flip', (e) => {
           playPaperSound();
