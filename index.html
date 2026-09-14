@@ -3,111 +3,381 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Recommending Books — Flippable Zine</title>
-  <meta name="description" content="An interactive flippable zine on reading and book recommendations by Anushree.">
+  <title>Zine</title>
+  <style>
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+    }
 
-  <!-- StPageFlip & PDF.js Styles / Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css">
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #161311;
+      background-image: radial-gradient(circle at center, #241d1b 0%, #161311 75%, #0e0c0b 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+      -webkit-user-select: none;
+    }
 
-  <!-- PDF.js CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-  <!-- StPageFlip CDN -->
-  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+    .flipbook-stage {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      padding: 12px;
+    }
+
+    .flipbook-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75), 0 8px 20px rgba(0, 0, 0, 0.5);
+      border-radius: 3px;
+      transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .flipbook {
+      position: relative;
+      display: block;
+    }
+
+    .page {
+      background-color: #2b2320;
+      overflow: hidden;
+    }
+
+    .page img {
+      width: 100%;
+      height: 100%;
+      object-fit: fill;
+      display: block;
+      pointer-events: none;
+    }
+
+    /* Soft spine shadow overlays */
+    .page:nth-child(even)::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 0;
+      width: 28px;
+      height: 100%;
+      background: linear-gradient(to left, rgba(0, 0, 0, 0.22), transparent);
+      pointer-events: none;
+    }
+
+    .page:nth-child(odd)::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 28px;
+      height: 100%;
+      background: linear-gradient(to right, rgba(0, 0, 0, 0.22), transparent);
+      pointer-events: none;
+    }
+
+    /* Minimal Floating Navigation Arrows (Icon-Only, No Text) */
+    .nav-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: rgba(28, 23, 21, 0.65);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #dfd3c3;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.2s ease, background-color 0.2s ease;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    }
+
+    .flipbook-stage:hover .nav-arrow {
+      opacity: 0.7;
+    }
+
+    .nav-arrow:hover:not(:disabled) {
+      opacity: 1 !important;
+      transform: translateY(-50%) scale(1.1);
+      background-color: rgba(45, 38, 35, 0.95);
+      color: #fff;
+    }
+
+    .nav-arrow:active:not(:disabled) {
+      transform: translateY(-50%) scale(0.95);
+    }
+
+    .nav-arrow:disabled {
+      opacity: 0 !important;
+      pointer-events: none;
+    }
+
+    .nav-prev {
+      left: 18px;
+    }
+
+    .nav-next {
+      right: 18px;
+    }
+
+    @media (max-width: 600px) {
+      .nav-arrow {
+        width: 36px;
+        height: 36px;
+        opacity: 0.6;
+      }
+      .nav-prev { left: 8px; }
+      .nav-next { right: 8px; }
+    }
+  </style>
+
+  <!-- Local PageFlip with CDN fallback -->
+  <script src="page-flip.browser.js"></script>
+  <script>
+    if (typeof St === 'undefined' || !St.PageFlip) {
+      document.write('<script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"><\/script>');
+    }
+  </script>
 </head>
 <body>
-  <!-- Loading Screen -->
-  <div id="loading" class="loading-overlay">
-    <div class="spinner-container">
-      <div class="spinner"></div>
-      <p id="loading-text" class="loading-text">Preparing your zine...</p>
-      <div class="loading-progress-bar">
-        <div id="progress-fill" class="progress-fill"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Main Zine Stage -->
-  <main id="app" class="app-container">
+  <div class="flipbook-stage">
     <div class="flipbook-wrapper">
       <div id="flipbook" class="flipbook">
-        <!-- Rendered page canvases will be injected here -->
+        <div class="page" data-density="soft"><img src="pages/page-01.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-02.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-03.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-04.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-05.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-06.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-07.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-08.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-09.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-10.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-11.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-12.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-13.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-14.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-15.jpg" alt=""></div>
+        <div class="page" data-density="soft"><img src="pages/page-16.jpg" alt=""></div>
       </div>
     </div>
 
-    <!-- Minimal Side Navigation Arrows -->
-    <button id="btn-prev" class="nav-arrow nav-prev" aria-label="Previous Page" title="Previous Page (Left Arrow)">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Icon-only Side Navigation Arrows (No Text) -->
+    <button id="btn-prev" class="nav-arrow nav-prev" aria-label="Previous">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="15 18 9 12 15 6"></polyline>
       </svg>
     </button>
-    <button id="btn-next" class="nav-arrow nav-next" aria-label="Next Page" title="Next Page (Right Arrow)">
-      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <button id="btn-next" class="nav-arrow nav-next" aria-label="Next">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
         <polyline points="9 18 15 12 9 6"></polyline>
       </svg>
     </button>
+  </div>
 
-    <!-- Sleek Auto-Hiding Bottom Controls Pill -->
-    <nav id="bottom-bar" class="bottom-bar" aria-label="Flipbook Controls">
-      <div class="pill-controls">
-        <button id="btn-first" class="icon-btn" aria-label="First page" title="Go to Front Cover">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="19 20 9 12 19 4 19 20"></polygon>
-            <line x1="5" y1="19" x2="5" y2="5"></line>
-          </svg>
-        </button>
+  <script>
+    (function () {
+      'use strict';
 
-        <span id="page-indicator" class="page-indicator">Cover</span>
+      const flipbookEl = document.getElementById('flipbook');
+      const wrapperEl = document.querySelector('.flipbook-wrapper');
+      const btnPrev = document.getElementById('btn-prev');
+      const btnNext = document.getElementById('btn-next');
 
-        <button id="btn-last" class="icon-btn" aria-label="Last page" title="Go to Back Cover">
-          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="5 4 15 12 5 20 5 4"></polygon>
-            <line x1="19" y1="5" x2="19" y2="19"></line>
-          </svg>
-        </button>
+      const basePageWidth = 1048;
+      const basePageHeight = 1488;
+      const aspectRatioSpread = (basePageWidth * 2) / basePageHeight; // ~1.408
+      const aspectRatioSingle = basePageWidth / basePageHeight; // ~0.704
+      const totalPages = 16;
+      let pageFlip = null;
+      let audioCtx = null;
 
-        <div class="divider"></div>
+      /* Realistic paper turn sound via Web Audio API */
+      function playPaperSound() {
+        try {
+          if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) audioCtx = new AudioContext();
+          }
+          if (audioCtx && audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          if (!audioCtx) return;
 
-        <!-- Sound Toggle -->
-        <button id="btn-sound" class="icon-btn" aria-label="Toggle flip sound" title="Toggle Sound">
-          <svg id="sound-on-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
-          </svg>
-          <svg id="sound-off-icon" class="hidden" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-            <line x1="23" y1="9" x2="17" y2="15"></line>
-            <line x1="17" y1="9" x2="23" y2="15"></line>
-          </svg>
-        </button>
+          const duration = 0.2;
+          const bufferSize = audioCtx.sampleRate * duration;
+          const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+          const data = buffer.getChannelData(0);
 
-        <!-- Fullscreen Toggle -->
-        <button id="btn-fullscreen" class="icon-btn" aria-label="Toggle Fullscreen" title="Toggle Fullscreen">
-          <svg id="enter-fullscreen-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="15 3 21 3 21 9"></polyline>
-            <polyline points="9 21 3 21 3 15"></polyline>
-            <line x1="21" y1="3" x2="14" y2="10"></line>
-            <line x1="3" y1="21" x2="10" y2="14"></line>
-          </svg>
-          <svg id="exit-fullscreen-icon" class="hidden" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="4 14 10 14 10 20"></polyline>
-            <polyline points="20 10 14 10 14 4"></polyline>
-            <line x1="14" y1="10" x2="21" y2="3"></line>
-            <line x1="3" y1="21" x2="10" y2="14"></line>
-          </svg>
-        </button>
-      </div>
-    </nav>
+          for (let i = 0; i < bufferSize; i++) {
+            const env = Math.pow(1 - i / bufferSize, 2.5);
+            data[i] = (Math.random() * 2 - 1) * env;
+          }
 
-    <!-- Hint for drag / key navigation -->
-    <div id="nav-hint" class="nav-hint">
-      <span>Drag page corner, click arrows, or use &larr; &rarr; keys</span>
-    </div>
-  </main>
+          const noise = audioCtx.createBufferSource();
+          noise.buffer = buffer;
 
-  <script src="app.js"></script>
+          const filter = audioCtx.createBiquadFilter();
+          filter.type = 'bandpass';
+          filter.frequency.setValueAtTime(800, audioCtx.currentTime);
+          filter.frequency.exponentialRampToValueAtTime(350, audioCtx.currentTime + duration);
+          filter.Q.setValueAtTime(1.5, audioCtx.currentTime);
+
+          const gain = audioCtx.createGain();
+          gain.gain.setValueAtTime(0.01, audioCtx.currentTime);
+          gain.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.02);
+          gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          noise.start();
+        } catch (e) {}
+      }
+
+      function updateDimensions() {
+        const isPortrait = window.innerWidth <= 640;
+        const paddingX = isPortrait ? 16 : 60;
+        const paddingY = 40;
+
+        const availW = window.innerWidth - paddingX;
+        const availH = window.innerHeight - paddingY;
+        const ratio = isPortrait ? aspectRatioSingle : aspectRatioSpread;
+
+        let w = availW;
+        let h = w / ratio;
+
+        if (h > availH) {
+          h = availH;
+          w = h * ratio;
+        }
+
+        wrapperEl.style.width = Math.round(w) + 'px';
+        wrapperEl.style.height = Math.round(h) + 'px';
+      }
+
+      function init() {
+        updateDimensions();
+
+        // Check deep link hash (e.g. #p=6)
+        let startPage = 0;
+        const match = window.location.hash.match(/(?:p|page)=(\d+)/i);
+        if (match) {
+          const num = parseInt(match[1], 10);
+          if (num >= 1 && num <= totalPages) {
+            startPage = num - 1;
+          }
+        }
+
+        pageFlip = new St.PageFlip(flipbookEl, {
+          width: 524,
+          height: 744,
+          size: 'stretch',
+          minWidth: 260,
+          maxWidth: 1200,
+          minHeight: 370,
+          maxHeight: 1700,
+          maxShadowOpacity: 0.5,
+          showCover: true,
+          mobileScrollSupport: false,
+          usePortrait: true,
+          startPage: startPage,
+          flippingTime: 700,
+          useMouseEvents: true,
+          swipeDistance: 25,
+          clickEventForward: true
+        });
+
+        pageFlip.loadFromHTML(document.querySelectorAll('.page'));
+
+        pageFlip.on('flip', (e) => {
+          playPaperSound();
+          updateButtons();
+          const pageNum = e.data + 1;
+          if (window.location.hash !== '#p=' + pageNum) {
+            history.replaceState(null, '', '#p=' + pageNum);
+          }
+        });
+
+        pageFlip.on('changeOrientation', updateButtons);
+
+        btnPrev.addEventListener('click', (e) => {
+          e.stopPropagation();
+          pageFlip.flipPrev();
+        });
+
+        btnNext.addEventListener('click', (e) => {
+          e.stopPropagation();
+          pageFlip.flipNext();
+        });
+
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+            e.preventDefault();
+            pageFlip.flipPrev();
+          } else if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') {
+            e.preventDefault();
+            pageFlip.flipNext();
+          } else if (e.key === 'Home') {
+            e.preventDefault();
+            pageFlip.flip(0);
+          } else if (e.key === 'End') {
+            e.preventDefault();
+            pageFlip.flip(totalPages - 1);
+          }
+        });
+
+        let resizeTimer = null;
+        window.addEventListener('resize', () => {
+          clearTimeout(resizeTimer);
+          resizeTimer = setTimeout(() => {
+            updateDimensions();
+            if (pageFlip) pageFlip.update();
+          }, 80);
+        });
+
+        window.addEventListener('pointerdown', () => {
+          if (!audioCtx) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            if (AudioContext) audioCtx = new AudioContext();
+          }
+        }, { once: true });
+
+        updateButtons();
+      }
+
+      function updateButtons() {
+        if (!pageFlip) return;
+        const current = pageFlip.getCurrentPageIndex();
+        btnPrev.disabled = (current === 0);
+        btnNext.disabled = (current >= totalPages - 1);
+      }
+
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', init);
+      } else {
+        init();
+      }
+    })();
+  </script>
 </body>
 </html>
