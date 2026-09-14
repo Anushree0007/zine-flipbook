@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Recommending Books — Flippable Zine</title>
+  <meta name="description" content="An interactive flippable zine on reading and book recommendations by Anushree.">
+
+  <!-- StPageFlip & PDF.js Styles / Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+
+  <!-- PDF.js CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+  <!-- StPageFlip CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/page-flip@2.0.7/dist/js/page-flip.browser.js"></script>
+</head>
+<body>
+  <!-- Loading Screen -->
+  <div id="loading" class="loading-overlay">
+    <div class="spinner-container">
+      <div class="spinner"></div>
+      <p id="loading-text" class="loading-text">Preparing your zine...</p>
+      <div class="loading-progress-bar">
+        <div id="progress-fill" class="progress-fill"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Zine Stage -->
+  <main id="app" class="app-container">
+    <div class="flipbook-wrapper">
+      <div id="flipbook" class="flipbook">
+        <!-- Rendered page canvases will be injected here -->
+      </div>
+    </div>
+
+    <!-- Minimal Side Navigation Arrows -->
+    <button id="btn-prev" class="nav-arrow nav-prev" aria-label="Previous Page" title="Previous Page (Left Arrow)">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="15 18 9 12 15 6"></polyline>
+      </svg>
+    </button>
+    <button id="btn-next" class="nav-arrow nav-next" aria-label="Next Page" title="Next Page (Right Arrow)">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="9 18 15 12 9 6"></polyline>
+      </svg>
+    </button>
+
+    <!-- Sleek Auto-Hiding Bottom Controls Pill -->
+    <nav id="bottom-bar" class="bottom-bar" aria-label="Flipbook Controls">
+      <div class="pill-controls">
+        <button id="btn-first" class="icon-btn" aria-label="First page" title="Go to Front Cover">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="19 20 9 12 19 4 19 20"></polygon>
+            <line x1="5" y1="19" x2="5" y2="5"></line>
+          </svg>
+        </button>
+
+        <span id="page-indicator" class="page-indicator">Cover</span>
+
+        <button id="btn-last" class="icon-btn" aria-label="Last page" title="Go to Back Cover">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="5 4 15 12 5 20 5 4"></polygon>
+            <line x1="19" y1="5" x2="19" y2="19"></line>
+          </svg>
+        </button>
+
+        <div class="divider"></div>
+
+        <!-- Sound Toggle -->
+        <button id="btn-sound" class="icon-btn" aria-label="Toggle flip sound" title="Toggle Sound">
+          <svg id="sound-on-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"></path>
+          </svg>
+          <svg id="sound-off-icon" class="hidden" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+            <line x1="23" y1="9" x2="17" y2="15"></line>
+            <line x1="17" y1="9" x2="23" y2="15"></line>
+          </svg>
+        </button>
+
+        <!-- Fullscreen Toggle -->
+        <button id="btn-fullscreen" class="icon-btn" aria-label="Toggle Fullscreen" title="Toggle Fullscreen">
+          <svg id="enter-fullscreen-icon" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9"></polyline>
+            <polyline points="9 21 3 21 3 15"></polyline>
+            <line x1="21" y1="3" x2="14" y2="10"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+          <svg id="exit-fullscreen-icon" class="hidden" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 14 10 14 10 20"></polyline>
+            <polyline points="20 10 14 10 14 4"></polyline>
+            <line x1="14" y1="10" x2="21" y2="3"></line>
+            <line x1="3" y1="21" x2="10" y2="14"></line>
+          </svg>
+        </button>
+      </div>
+    </nav>
+
+    <!-- Hint for drag / key navigation -->
+    <div id="nav-hint" class="nav-hint">
+      <span>Drag page corner, click arrows, or use &larr; &rarr; keys</span>
+    </div>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
